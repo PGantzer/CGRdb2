@@ -134,7 +134,7 @@ class Molecule(Entity):
                 molecules as ({request_core}),
                 substances as (SELECT s.substance, molecules.m
                     FROM substancestructure s JOIN molecules ON s.molecule = molecules.m)
-                SELECT DISTINCT r.reaction as reaction_id, r_s.m as molecule_id FROM reactionsubstance r JOIN substances r_s 
+                SELECT DISTINCT r.reaction as reaction_id, r_s.m as molecule_id FROM reactionsubstance r JOIN substances r_s
                 ON r.substance = r_s.substance'''
         return RequestPack(request, partial(cls.__postprocess_unordered_reaction, fingerprint=fingerprint),
                            prefetch_map=(reaction.Reaction, 0,
@@ -168,7 +168,7 @@ class Molecule(Entity):
         elif not isinstance(mol, MoleculeContainer):
             raise ValueError("CGRtools.MoleculeContainer should be provided")
         try:
-            m = MoleculeStructure.get(signature=mol.pack()).molecule
+            m = MoleculeStructure.get(signature=bytes(mol)).molecule
         except AttributeError:
             m = None
         return m
@@ -177,7 +177,7 @@ class Molecule(Entity):
     def _exact_match_in_reactions(cls, mol):
         request_core, postprocess = cls._exact_match(mol)
         request = f'''  WITH molecules as ({request_core}),
-                        substances as (SELECT s.molecule m, s.substance 
+                        substances as (SELECT s.molecule m, s.substance
                         FROM substancestructure s JOIN molecules ON s.molecule = molecules.molecule)
                         SELECT r.reaction as reaction_id
                         FROM reactionsubstance r JOIN substances r_s ON r.substance = r_s.substance'''
@@ -289,12 +289,12 @@ class Molecule(Entity):
                               tanimoto_limit: Optional[float] = None) -> RequestPack:
         len_fp = len(fingerprint)
         if prefilter:
-            prefilter = f"""WHERE a.fingerprint_len BETWEEN {len_fp} AND 
+            prefilter = f"""WHERE a.fingerprint_len BETWEEN {len_fp} AND
         {int(len_fp // 0.1)+5} AND"""
         else:
             prefilter = "WHERE"
         request = f'''
-        WITH table_1 AS (SELECT a.molecule, a.fingerprint, a.id, a.fingerprint_len 
+        WITH table_1 AS (SELECT a.molecule, a.fingerprint, a.id, a.fingerprint_len
         FROM MoleculeStructure a
         {prefilter} a.fingerprint @> '{set(fingerprint)}'),
         table_2 AS (SELECT DISTINCT ON (table_1.molecule)  table_1.molecule m, table_1.id s,
@@ -321,7 +321,7 @@ class Molecule(Entity):
                            prefetch_map=(MoleculeStructure, 1, [MoleculeStructure.fingerprint, MoleculeStructure._structure]))
 
     def substructures(self: Union[MoleculeContainer, "Molecule"], ordered=True, request_only=False,
-                     tanimoto_limit: Optional[float] = None):
+                      tanimoto_limit: Optional[float] = None):
         """
         :param ordered: Return substructures ordered by similarity (also similarity limit will be used)
         :param request_only: Option is for internal usage or debugging to see actual sql request
@@ -486,7 +486,7 @@ class NonOrganic(Entity):
     def _exact_match_in_reactions(cls, mol):
         request_core, postprocess = cls._exact_match(mol)
         request = f'''  WITH non_organic as ({request_core}),
-                            substances as (SELECT s.non_organic n, s.substance 
+                            substances as (SELECT s.non_organic n, s.substance
                             FROM substancestructure s JOIN non_organic ON s.non_organic = non_organic.id)
                             SELECT r.reaction as reaction_id
                             FROM reactionsubstance r JOIN substances r_s ON r.substance = r_s.substance'''
@@ -507,7 +507,7 @@ class NonOrganic(Entity):
             raise ValueError("CGRtools.MoleculeContainer should be provided")
         request_pack = cls._exact_match_in_reactions(mol)
         if is_product is not None:
-            if isinstance(is_product, bool) :
+            if isinstance(is_product, bool):
                 request_pack = cls.__role_filter(request_pack, is_product)
             else:
                 raise ValueError("role can be String (product, reactant) or None")
